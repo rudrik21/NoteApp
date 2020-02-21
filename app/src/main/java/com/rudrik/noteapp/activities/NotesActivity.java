@@ -36,6 +36,7 @@ import static com.rudrik.noteapp.MyApplication.SEL_NOTE;
 import static com.rudrik.noteapp.MyApplication.bg;
 import static com.rudrik.noteapp.MyApplication.db;
 import static com.rudrik.noteapp.MyApplication.editor;
+import static com.rudrik.noteapp.MyApplication.main;
 import static com.rudrik.noteapp.MyApplication.prefs;
 import static com.rudrik.noteapp.models.Folder.myFolders;
 import static com.rudrik.noteapp.models.Note.myNotes;
@@ -52,6 +53,7 @@ public class NotesActivity extends AppCompatActivity implements View.OnClickList
 
     private Folder selFolder;
     private AdptMyNotes adpt = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,8 +75,14 @@ public class NotesActivity extends AppCompatActivity implements View.OnClickList
 
     private void checkFolder() {
         selFolder = (Folder) getIntent().getSerializableExtra(SEL_FOLDER);
-        if (selFolder != null){
-            System.out.println("from folder : " + selFolder.getfName());
+        if (selFolder != null) {
+            bg.execute(() -> {
+                List<Note> list = db.notesDao().getFolderNotes(selFolder.getId());
+
+                if (!list.isEmpty()) {
+                    main.execute(() -> recyclerNotes.swapAdapter(new AdptMyNotes(this, list), true));
+                }
+            });
         }
     }
 
@@ -97,13 +105,14 @@ public class NotesActivity extends AppCompatActivity implements View.OnClickList
         recyclerNotes.setAdapter(adpt);
 
         fabAdd.setOnClickListener(this);
+
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == android.R.id.home){
+        if (item.getItemId() == android.R.id.home) {
             onBackPressed();
-            overridePendingTransition(0,0);
+            overridePendingTransition(0, 0);
         }
         return super.onOptionsItemSelected(item);
     }
@@ -111,7 +120,7 @@ public class NotesActivity extends AppCompatActivity implements View.OnClickList
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        overridePendingTransition(0,0);
+        overridePendingTransition(0, 0);
     }
 
     @Override
@@ -135,12 +144,19 @@ public class NotesActivity extends AppCompatActivity implements View.OnClickList
                 note = (Note) data.getSerializableExtra(SEL_NOTE);
             }
 
-            if (note != null){
+            if (note != null) {
                 note.setfId(selFolder.getId());
-                if (!myNotes.contains(note)){
+                if (!myNotes.contains(note)) {
                     Note finalNote = note;
                     bg.execute(() -> {
                         db.notesDao().insertNote(finalNote);
+
+                        List<Note> list = db.notesDao().getFolderNotes(selFolder.getId());
+
+                        if (!list.isEmpty() && !list.equals(myNotes)) {
+                            main.execute(() -> recyclerNotes.swapAdapter(new AdptMyNotes(this, list), true));
+                        }
+
                     });
                 }
             }
@@ -151,7 +167,7 @@ public class NotesActivity extends AppCompatActivity implements View.OnClickList
     public void onSharedPreferenceChanged(SharedPreferences preferences, String key) {
         if (key.equals(NOTES_DATA_CHANGES)) {
             if (preferences.getBoolean(NOTES_DATA_CHANGES, false)) {
-                Log.e("HAS_DATA_CHANGES", String.valueOf(preferences.getBoolean(NOTES_DATA_CHANGES, false)));
+                Log.e(NOTES_DATA_CHANGES, String.valueOf(preferences.getBoolean(NOTES_DATA_CHANGES, false)));
                 if (adpt != null) {
                     recyclerNotes.swapAdapter(new AdptMyNotes(this, myNotes), true);
 
@@ -186,7 +202,7 @@ public class NotesActivity extends AppCompatActivity implements View.OnClickList
             } else {
                 recyclerNotes.swapAdapter(new AdptMyNotes(this, new ArrayList<>()), true);
             }
-        }else{
+        } else {
             recyclerNotes.swapAdapter(new AdptMyNotes(this, myNotes), true);
         }
         edtSearch.addTextChangedListener(this);
