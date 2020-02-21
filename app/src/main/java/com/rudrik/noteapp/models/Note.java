@@ -19,25 +19,25 @@ public class Note implements Serializable {
     public static List<Note> myNotes = new ArrayList<>();
 
     @PrimaryKey(autoGenerate = true)
-    int id;
+    int id = -1;
 
     @ColumnInfo(name = "fId")
-    public int fId;
+    public int fId = -1;
 
     @ColumnInfo(name = "title")
-    String title;
+    String title = "";
 
     @ColumnInfo(name = "desc")
-    String desc;
+    String desc = "";
 
     @ColumnInfo(name = "dt")
     String dt;
 
     @ColumnInfo(name = "lat")
-    float lat;
+    float lat = 0f;
 
     @ColumnInfo(name = "lng")
-    float lng;
+    float lng = 0f;
 
     @ColumnInfo(name = "images")
     List<String> images = new ArrayList<>();

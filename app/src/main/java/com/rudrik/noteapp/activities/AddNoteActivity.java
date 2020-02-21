@@ -1,44 +1,47 @@
 package com.rudrik.noteapp.activities;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.AppCompatMultiAutoCompleteTextView;
-
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatMultiAutoCompleteTextView;
+
+import com.google.android.gms.maps.model.LatLng;
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.textfield.TextInputEditText;
+import com.rudrik.noteapp.MyApplication;
 import com.rudrik.noteapp.R;
 import com.rudrik.noteapp.adapters.AdptAudioSpeedDial;
 import com.rudrik.noteapp.adapters.AdptImagesSpeedDial;
-import com.rudrik.noteapp.models.Folder;
 import com.rudrik.noteapp.models.Note;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-
 import uk.co.markormesher.android_fab.FloatingActionButton;
 import uk.co.markormesher.android_fab.SpeedDialMenuOpenListener;
 
-import static com.rudrik.noteapp.MyApplication.SEL_FOLDER;
+import static com.rudrik.noteapp.MyApplication.LOC_REQ_CODE;
 import static com.rudrik.noteapp.MyApplication.SEL_NOTE;
-import static com.rudrik.noteapp.MyApplication.db;
-import static com.rudrik.noteapp.MyApplication.getStrToday;
-import static com.rudrik.noteapp.MyApplication.getToday;
-import static com.rudrik.noteapp.MyApplication.main;
+import static com.rudrik.noteapp.MyApplication.prefs;
+import static com.rudrik.noteapp.MyApplication.statusCheck;
 import static com.rudrik.noteapp.activities.NotesActivity.REQ_CODE_NOTE;
 
-public class AddNoteActivity extends AppCompatActivity implements SpeedDialMenuOpenListener {
+public class AddNoteActivity extends AppCompatActivity implements SpeedDialMenuOpenListener, SharedPreferences.OnSharedPreferenceChangeListener {
 
     private Note selNote;
+    private LatLng userLocation = null;
 
     private AppBarLayout appBar;
     private MaterialToolbar toolbar;
@@ -57,9 +60,6 @@ public class AddNoteActivity extends AppCompatActivity implements SpeedDialMenuO
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_note);
-
-        checkNote();
-        init();
     }
 
     private void init() {
@@ -79,10 +79,9 @@ public class AddNoteActivity extends AppCompatActivity implements SpeedDialMenuO
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        edtSearch.setVisibility(View.GONE);
+        checkNote();
 
-        edtNtitle.setText(selNote.getTitle());
-        edtNdesc.setText(selNote.getDesc());
+        edtSearch.setVisibility(View.GONE);
 
         fabAudioAction.setOnSpeedDialMenuOpenListener(this);
         fabAudioAction.setSpeedDialMenuAdapter(new AdptAudioSpeedDial(this));
@@ -92,7 +91,37 @@ public class AddNoteActivity extends AppCompatActivity implements SpeedDialMenuO
 
         fabDirectionAction.setOnClickListener(v -> {
             // on direction click
+            Intent i = new Intent(this, MapsActivity.class);
+            i.putExtra(SEL_NOTE, selNote);
+            startActivity(i);
         });
+
+        edtNtitle.setText(selNote.getTitle());
+        edtNdesc.setText(selNote.getDesc());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        init();
+
+        Log.e("LOCATION_SERVICE", String.valueOf(statusCheck(this)));
+
+        if (selNote.getLat() == 0f || selNote.getLng() == 0f) {
+            if (checkPermissions()) {
+                MyApplication.initUserLocation(this);
+            }
+        }
+
+        userLocation = new LatLng(MyApplication.getPrefs().getFloat("U_LAT", 0f), MyApplication.getPrefs().getFloat("U_LNG", 0f));
+        if (selNote.getLat() == 0f) {
+            selNote.setLat((float) userLocation.latitude);
+        }
+        if (selNote.getLng() == 0f) {
+            selNote.setLng((float) userLocation.longitude);
+        }
+        prefs.registerOnSharedPreferenceChangeListener(this);
     }
 
     @Override
@@ -106,12 +135,43 @@ public class AddNoteActivity extends AppCompatActivity implements SpeedDialMenuO
 
     private void checkNote() {
         selNote = (Note) getIntent().getSerializableExtra(SEL_NOTE);
-        if (selNote != null){
+        if (selNote != null) {
             System.out.println("from note : " + selNote.getTitle());
-        }else{
+            toolbar.setTitle("Edit Note");
+        } else {
             selNote = new Note();
         }
 
+    }
+
+    @SuppressLint("NewApi")
+    private boolean checkPermissions() {
+        boolean isPermitted = (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)) == PackageManager.PERMISSION_GRANTED;
+        if (!isPermitted) {
+            requestPermission();
+        }
+        return isPermitted;
+    }
+
+    @SuppressLint("NewApi")
+    private void requestPermission() {
+        this.requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOC_REQ_CODE);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (grantResults.length > 0) {
+            if (requestCode == LOC_REQ_CODE && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.e("Application", "Location permission has been granted");
+            }
+
+            if (requestCode == LOC_REQ_CODE && grantResults[0] == PackageManager.PERMISSION_DENIED) {
+                this.finish();
+                overridePendingTransition(0, 0);
+            }
+        }
     }
 
     @Override
@@ -136,11 +196,11 @@ public class AddNoteActivity extends AppCompatActivity implements SpeedDialMenuO
         selNote.setTitle(edtNtitle.getText().toString());
         selNote.setDesc(edtNdesc.getText().toString());
 
-        if (selNote.getTitle().isEmpty() && selNote.getDesc().isEmpty()){
-            if (selNote.getTitle().isEmpty()){
+        if (selNote.getTitle().isEmpty() && selNote.getDesc().isEmpty()) {
+            if (selNote.getTitle().isEmpty()) {
                 edtNtitle.setError("No title!");
             }
-            if (selNote.getDesc().isEmpty()){
+            if (selNote.getDesc().isEmpty()) {
                 edtNdesc.setError("No description!");
             }
 
@@ -154,11 +214,25 @@ public class AddNoteActivity extends AppCompatActivity implements SpeedDialMenuO
 
             new Handler().postDelayed(() -> doubleBackToExitPressedOnce = false, 2000);
 
-        }else{
+        } else {
             Intent intent = new Intent();
             intent.putExtra(SEL_NOTE, selNote);
             setResult(REQ_CODE_NOTE, intent);
             super.onBackPressed();
+        }
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if (key.equals("U_LAT") || key.equals("U_LNG")) {
+            userLocation = new LatLng(prefs.getFloat("U_LAT", 0f), prefs.getFloat("U_LNG", 0f));
+            if (selNote.getLat() == 0f) {
+                selNote.setLat((float) userLocation.latitude);
+            }
+            if (selNote.getLng() == 0f) {
+                selNote.setLng((float) userLocation.longitude);
+            }
+            Log.e("USER_LOCATION", userLocation.toString());
         }
     }
 }

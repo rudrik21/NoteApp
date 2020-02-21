@@ -15,10 +15,10 @@ public class Folder implements Serializable {
     public static List<Folder> myFolders = new ArrayList<>();
 
     @PrimaryKey(autoGenerate = true)
-    int id;
+    int id = -1;
 
     @ColumnInfo(name = "folder_name")
-    public String fName;
+    public String fName = "";
 
     @ColumnInfo(name = "total_notes")
     public long totalNotes = 0;
