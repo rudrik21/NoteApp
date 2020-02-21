@@ -69,6 +69,20 @@ public class Note implements Serializable {
         this.audios = audios;
     }
 
+    @Ignore
+    public Note(String title, String desc, String dt, float lat, float lng, List<String> images, List<String> audios) {
+        this.title = title;
+        this.desc = desc;
+        this.dt = dt;
+        this.lat = lat;
+        this.lng = lng;
+        this.images = images;
+        this.audios = audios;
+    }
+
+    @Ignore
+    public Note() { }
+
     public int getId() {
         return id;
     }

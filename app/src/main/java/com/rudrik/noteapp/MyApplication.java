@@ -92,7 +92,7 @@ public class MyApplication extends Application {
         });
     }
 
-    public static void noteUpdates(int fId){
+    public static void noteUpdates(Context context, int fId){
         main.execute(()->{
 
             //  fetching notes

@@ -16,11 +16,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.rudrik.noteapp.R;
 import com.rudrik.noteapp.activities.NotesActivity;
 import com.rudrik.noteapp.models.Folder;
-import com.rudrik.noteapp.models.Note;
 import com.tr4android.recyclerviewslideitem.SwipeAdapter;
 import com.tr4android.recyclerviewslideitem.SwipeConfiguration;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static com.rudrik.noteapp.MyApplication.SEL_FOLDER;
@@ -50,7 +48,6 @@ public class AdptMyFolders extends SwipeAdapter {
         if (!list.isEmpty()) {
             if (viewHolder instanceof MyFolderViewHolder) {
 
-
                 MyFolderViewHolder vh = (MyFolderViewHolder) viewHolder;
 
                 Folder folder = list.get(pos);
@@ -64,11 +61,7 @@ public class AdptMyFolders extends SwipeAdapter {
 
                 vh.tvFolderName.setText(folder.getfName());
 
-                List<Note> notes = new ArrayList<>();
-                bg.execute(() -> {
-                    notes.addAll(db.notesDao().getFolderNotes(folder.getId()));
-                });
-                vh.tvTotalNotes.setText(String.valueOf(notes.size()));
+                vh.tvTotalNotes.setText(String.valueOf(folder.totalNotes));
             }
         }
     }
@@ -131,8 +124,8 @@ public class AdptMyFolders extends SwipeAdapter {
         public MyFolderViewHolder(@NonNull View iv) {
             super(iv);
 
-            cardFolder = (CardView) iv.findViewById(R.id.cardFolder);
-            tvFolderName = (TextView) iv.findViewById(R.id.tvFolderName);
+            cardFolder = (CardView) iv.findViewById(R.id.cardNote);
+            tvFolderName = (TextView) iv.findViewById(R.id.tvNoteName);
             tvTotalNotes = (TextView) iv.findViewById(R.id.tvTotalNotes);
         }
 

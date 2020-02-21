@@ -3,6 +3,9 @@ package com.rudrik.noteapp.activities;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.Editable;
+import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -26,6 +29,7 @@ import com.rudrik.noteapp.models.Folder;
 import com.rudrik.noteapp.models.Note;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static com.rudrik.noteapp.MyApplication.FOLDER_DATA_CHANGES;
 import static com.rudrik.noteapp.MyApplication.bg;
@@ -34,7 +38,7 @@ import static com.rudrik.noteapp.MyApplication.editor;
 import static com.rudrik.noteapp.MyApplication.prefs;
 import static com.rudrik.noteapp.models.Folder.myFolders;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener, SharedPreferences.OnSharedPreferenceChangeListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, SharedPreferences.OnSharedPreferenceChangeListener, TextWatcher {
 
     private AppBarLayout appBarLayout;
     private CollapsingToolbarLayout collapsingToolbar;
@@ -84,6 +88,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         fab_add = (FloatingActionButton) findViewById(R.id.fab_add);
 
         toolbar.setTitle("Folders");
+        edtSearch.addTextChangedListener(this);
 
         adpt = new AdptMyFolders(this, new ArrayList<>());
         recyclerFolders.setHasFixedSize(true);
@@ -223,5 +228,41 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
         }
+    }
+
+
+    //  on search
+
+    @Override
+    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+        return;
+    }
+
+    @Override
+    public void onTextChanged(CharSequence s, int start, int before, int count) {
+        edtSearch.removeTextChangedListener(this);
+
+        if (!TextUtils.isEmpty(s)) {
+            List<Folder> list = new ArrayList<>();
+            for (Folder folder : myFolders) {
+                if (folder.getfName().contains(s.toString())) {
+                    list.add(folder);
+                }
+            }
+
+            if (!list.isEmpty()) {
+                recyclerFolders.swapAdapter(new AdptMyFolders(this, list), true);
+            } else {
+                recyclerFolders.swapAdapter(new AdptMyFolders(this, new ArrayList<>()), true);
+            }
+        }else{
+            recyclerFolders.swapAdapter(new AdptMyFolders(this, myFolders), true);
+        }
+        edtSearch.addTextChangedListener(this);
+    }
+
+    @Override
+    public void afterTextChanged(Editable s) {
+        return;
     }
 }

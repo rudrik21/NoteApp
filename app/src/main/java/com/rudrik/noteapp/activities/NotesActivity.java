@@ -9,6 +9,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -19,18 +22,25 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.rudrik.noteapp.MyApplication;
 import com.rudrik.noteapp.R;
+import com.rudrik.noteapp.adapters.AdptMyFolders;
 import com.rudrik.noteapp.adapters.AdptMyNotes;
 import com.rudrik.noteapp.models.Folder;
+import com.rudrik.noteapp.models.Note;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static com.rudrik.noteapp.MyApplication.NOTES_DATA_CHANGES;
 import static com.rudrik.noteapp.MyApplication.SEL_FOLDER;
+import static com.rudrik.noteapp.MyApplication.SEL_NOTE;
+import static com.rudrik.noteapp.MyApplication.bg;
+import static com.rudrik.noteapp.MyApplication.db;
 import static com.rudrik.noteapp.MyApplication.editor;
 import static com.rudrik.noteapp.MyApplication.prefs;
+import static com.rudrik.noteapp.models.Folder.myFolders;
 import static com.rudrik.noteapp.models.Note.myNotes;
 
-public class NotesActivity extends AppCompatActivity implements View.OnClickListener, SharedPreferences.OnSharedPreferenceChangeListener {
+public class NotesActivity extends AppCompatActivity implements View.OnClickListener, SharedPreferences.OnSharedPreferenceChangeListener, TextWatcher {
 
     public static int REQ_CODE_NOTE = 10;
 
@@ -57,7 +67,7 @@ public class NotesActivity extends AppCompatActivity implements View.OnClickList
         super.onStart();
         myNotes.clear();
         if (selFolder != null) {
-            MyApplication.noteUpdates(selFolder.getId());
+            MyApplication.noteUpdates(this, selFolder.getId());
         }
     }
 
@@ -78,6 +88,8 @@ public class NotesActivity extends AppCompatActivity implements View.OnClickList
         toolbar.setTitle("Notes");
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        edtSearch.addTextChangedListener(this);
 
         adpt = new AdptMyNotes(this, new ArrayList<>());
         recyclerNotes.setHasFixedSize(true);
@@ -117,15 +129,22 @@ public class NotesActivity extends AppCompatActivity implements View.OnClickList
         super.onActivityResult(requestCode, resultCode, data);
         Log.e("ON_ACTIVITY_RES", "TRUE");
 
-//        if (requestCode == REQ_CODE_NOTE) {
-//            if (data != null) {
-//                selFolder = (Folder) data.getSerializableExtra(SEL_FOLDER);
-//            }
-//
-//            if (selFolder != null){
-//                System.out.println("from folder : " + selFolder.getfName());
-//            }
-//        }
+        if (requestCode == REQ_CODE_NOTE) {
+            Note note = null;
+            if (data != null) {
+                note = (Note) data.getSerializableExtra(SEL_NOTE);
+            }
+
+            if (note != null){
+                note.setfId(selFolder.getId());
+                if (!myNotes.contains(note)){
+                    Note finalNote = note;
+                    bg.execute(() -> {
+                        db.notesDao().insertNote(finalNote);
+                    });
+                }
+            }
+        }
     }
 
     @Override
@@ -141,5 +160,40 @@ public class NotesActivity extends AppCompatActivity implements View.OnClickList
                 }
             }
         }
+    }
+
+    //  on search
+
+    @Override
+    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+        return;
+    }
+
+    @Override
+    public void onTextChanged(CharSequence s, int start, int before, int count) {
+        edtSearch.removeTextChangedListener(this);
+
+        if (!TextUtils.isEmpty(s)) {
+            List<Note> list = new ArrayList<>();
+            for (Note note : myNotes) {
+                if (note.getTitle().contains(s.toString()) || note.getDesc().contains(s.toString())) {
+                    list.add(note);
+                }
+            }
+
+            if (!list.isEmpty()) {
+                recyclerNotes.swapAdapter(new AdptMyNotes(this, list), true);
+            } else {
+                recyclerNotes.swapAdapter(new AdptMyNotes(this, new ArrayList<>()), true);
+            }
+        }else{
+            recyclerNotes.swapAdapter(new AdptMyNotes(this, myNotes), true);
+        }
+        edtSearch.addTextChangedListener(this);
+    }
+
+    @Override
+    public void afterTextChanged(Editable s) {
+        return;
     }
 }

@@ -14,18 +14,19 @@ import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.rudrik.noteapp.R;
+import com.rudrik.noteapp.activities.AddNoteActivity;
 import com.rudrik.noteapp.activities.NotesActivity;
-import com.rudrik.noteapp.models.Folder;
 import com.rudrik.noteapp.models.Note;
 import com.tr4android.recyclerviewslideitem.SwipeAdapter;
 import com.tr4android.recyclerviewslideitem.SwipeConfiguration;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static com.rudrik.noteapp.MyApplication.SEL_FOLDER;
+import static com.rudrik.noteapp.MyApplication.SEL_NOTE;
 import static com.rudrik.noteapp.MyApplication.bg;
 import static com.rudrik.noteapp.MyApplication.db;
+import static com.rudrik.noteapp.activities.NotesActivity.REQ_CODE_NOTE;
 
 public class AdptMyNotes extends SwipeAdapter {
 
@@ -40,7 +41,7 @@ public class AdptMyNotes extends SwipeAdapter {
     @Override
     public MyNoteViewHolder onCreateSwipeViewHolder(ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_my_folder, parent, true);
+                .inflate(R.layout.item_my_note, parent, true);
 
         return new MyNoteViewHolder(v);
     }
@@ -50,26 +51,22 @@ public class AdptMyNotes extends SwipeAdapter {
         if (!list.isEmpty()) {
             if (viewHolder instanceof MyNoteViewHolder) {
 
-
                 MyNoteViewHolder vh = (MyNoteViewHolder) viewHolder;
 
                 Note note = list.get(pos);
 
                 vh.cardNote.setOnClickListener(v -> {
-                    Intent i = new Intent(context, NotesActivity.class);
-                    i.putExtra(SEL_FOLDER, list.get(pos));
-                    context.startActivity(i);
+                    Intent i = new Intent(context, AddNoteActivity.class);
+                    i.putExtra(SEL_NOTE, list.get(pos));
+                    ((Activity)context).startActivityForResult(i, REQ_CODE_NOTE);
                     ((Activity)context).overridePendingTransition(R.anim.slide_in, R.anim.slide_out);
                 });
 
                 vh.tvNoteName.setText(note.getTitle());
+                vh.tvNoteDesc.setText(note.getDesc());
+                vh.tvTotalNoteImages.setText(String.valueOf(note.getImages().size() > 1 ? note.getImages().size() : 0));
+                vh.tvTotalNoteAudios.setText(String.valueOf(note.getAudios().size() > 1 ? note.getAudios().size() : 0));
 
-                List<Note> notes = new ArrayList<>();
-                bg.execute(() -> {
-                    notes.addAll(db.notesDao().getFolderNotes(note.getId()));
-                });
-
-                vh.tvTotalNotes.setText(String.valueOf(notes.size()));
             }
         }
     }
@@ -91,7 +88,7 @@ public class AdptMyNotes extends SwipeAdapter {
 
         if (!list.isEmpty()) {
             return new SwipeConfiguration.Builder(context)
-                    .setRightDrawableResource(R.drawable.ic_search)
+//                    .setRightDrawableResource(R.drawable.ic_search)
                     .setLeftDrawableResource(R.drawable.ic_delete)
                     .setSwipeBehaviour(10, null)
                     .build();
@@ -122,19 +119,23 @@ public class AdptMyNotes extends SwipeAdapter {
         }
     }
 
-
     class MyNoteViewHolder extends RecyclerView.ViewHolder {
 
         CardView cardNote;
         TextView tvNoteName;
-        TextView tvTotalNotes;
+        TextView tvNoteDesc;
+        TextView tvTotalNoteImages;
+        TextView tvTotalNoteAudios;
 
         public MyNoteViewHolder(@NonNull View iv) {
+
             super(iv);
 
-            cardNote = (CardView) iv.findViewById(R.id.cardFolder);
-            tvNoteName = (TextView) iv.findViewById(R.id.tvFolderName);
-            tvTotalNotes = (TextView) iv.findViewById(R.id.tvTotalNotes);
+            cardNote = (CardView) iv.findViewById(R.id.cardNote);
+            tvNoteName = (TextView) iv.findViewById(R.id.tvNoteName);
+            tvNoteDesc = (TextView) iv.findViewById(R.id.tvNoteDesc);
+            tvTotalNoteImages = (TextView) iv.findViewById(R.id.tvTotalNoteImages);
+            tvTotalNoteAudios = (TextView) iv.findViewById(R.id.tvTotalNoteAudios);
         }
 
     }

@@ -20,7 +20,7 @@ public interface FoldersDao {
 //    @Query("select * from folder")
 //    List<Folder> getFolderList();
 
-    @Query("select * from folder")
+    @Query("select id, folder_name, (select count(*) from note n where f.id=n.fId ) total_notes from folder f")
     LiveData<List<Folder>> getLiveFolders();
 
     @RawQuery

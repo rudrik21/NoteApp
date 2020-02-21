@@ -20,9 +20,13 @@ public class Folder implements Serializable {
     @ColumnInfo(name = "folder_name")
     public String fName;
 
-    public Folder(int id, String fName) {
+    @ColumnInfo(name = "total_notes")
+    public long totalNotes = 0;
+
+    public Folder(int id, String fName, long totalNotes) {
         this.id = id;
         this.fName = fName;
+        this.totalNotes = totalNotes;
     }
 
     @Ignore
@@ -46,11 +50,20 @@ public class Folder implements Serializable {
         this.fName = fName;
     }
 
+    public long getTotalNotes() {
+        return totalNotes;
+    }
+
+    public void setTotalNotes(long totalNotes) {
+        this.totalNotes = totalNotes;
+    }
+
     @Override
     public String toString() {
         return "Folder{" +
                 "id=" + id +
                 ", fName='" + fName + '\'' +
+                ", totalNotes=" + totalNotes +
                 '}';
     }
 }
